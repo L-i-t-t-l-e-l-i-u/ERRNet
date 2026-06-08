@@ -12,3 +12,5 @@ bak
 results
 raw_data
 processed_data
+errnet_env/
+train_log.txt
