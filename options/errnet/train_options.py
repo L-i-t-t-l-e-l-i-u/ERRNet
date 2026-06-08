@@ -40,4 +40,11 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--lambda_gan', type=float, default=0.01, help='weight for gan loss')
         self.parser.add_argument('--lambda_vgg', type=float, default=0.1, help='weight for vgg loss')
         
+        # [新增] 课设优化损失权重参数（由课程学习策略动态调整）
+        self.parser.add_argument('--lambda_pixel', type=float, default=1.0, help='weight for base pixel loss (MSE+Gradient)')
+        self.parser.add_argument('--lambda_maxrf', type=float, default=0.0, help='weight for MaxRF mask-weighted L1 loss')
+        self.parser.add_argument('--lambda_exclusion', type=float, default=0.0, help='weight for gradient exclusion loss')
+        self.parser.add_argument('--lambda_laplacian', type=float, default=0.0, help='weight for laplacian edge loss')
+        self.parser.add_argument('--lambda_fea_decorr', type=float, default=0.0, help='weight for feature decorrelation loss')
+        
         self.isTrain = True

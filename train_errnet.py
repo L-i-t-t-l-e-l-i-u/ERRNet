@@ -59,48 +59,61 @@ def set_learning_rate(lr):
 if opt.resume:
     res = engine.eval(eval_dataloader_ceilnet, dataset_name='testdata_table2')
 
-# 初始学习率设置
+# =========================================================
+# 课程学习策略：所有 lambda 变量现在直接控制 backward_G 中的损失权重
+# （已修复此前 lambda_l1 空转、双重更新、LR 反复升降的问题）
+# =========================================================
+
 set_learning_rate(1e-4)
 
-# 【核心修改区：Curriculum Learning Strategy 初始化】
-# 假设你在 engine.model.opt 中定义了这些权重变量。如果没有，请在 engine.py 中添加对它们的解析和损失计算。
-engine.model.opt.lambda_gan = 0.0          # GAN Loss 权重
-engine.model.opt.lambda_l1 = 1.0           # 基础/MaxRF L1 Loss 权重
-engine.model.opt.lambda_exclusion = 0.0    # 梯度互斥 Loss 权重
-engine.model.opt.lambda_laplacian = 0.0    # 拉普拉斯边缘 Loss 权重
+# ---------------------------------------------------------
+# Stage 1: Epoch 0~19 — 粗结构分离
+# 只用基础像素损失 + VGG 感知损失，让网络先学会大结构
+# ---------------------------------------------------------
+opt.lambda_pixel = 1.0
+opt.lambda_vgg = 0.1
+opt.lambda_gan = 0.0
+opt.lambda_maxrf = 0.0
+opt.lambda_exclusion = 0.0
+opt.lambda_laplacian = 0.0
+opt.lambda_fea_decorr = 0.0
 
-print("[i] Starting Stage 1: Coarse Structural Separation (Epochs 1-20)")
+print("[i] Starting Stage 1: Coarse Structural Separation (Epochs 0-19)")
 
 while engine.epoch < 60:
-    # -------------------------------------------------------------
-    # Stage 2: Epoch 21~40 (Fine Structural Decoupling)
-    # -------------------------------------------------------------
+    # ---------------------------------------------------------
+    # Stage 2: Epoch 20~39 — 精细结构解耦
+    # 引入 MaxRF 加权损失 + 梯度互斥 + GAN，分离纹理边界
+    # ---------------------------------------------------------
     if engine.epoch == 20:
-        print("\n[i] Entering Stage 2: Fine Structural Decoupling")
-        engine.model.opt.lambda_gan = 0.01        # 引入对抗损失提升真实感
-        engine.model.opt.lambda_exclusion = 0.05  # 激活 Pseudo-Reflection Gradient Exclusion，分离边界
-        # 保持 L1 为主导
-        
+        print("\n[i] Entering Stage 2: Fine Structural Decoupling (Epochs 20-39)")
+        opt.lambda_pixel = 0.8          # 略微降低基础像素损失权重
+        opt.lambda_maxrf = 0.5          # 引入 MaxRF 掩膜加权损失
+        opt.lambda_exclusion = 0.05     # 激活梯度互斥损失
+        opt.lambda_gan = 0.01           # 引入对抗损失
+
     if engine.epoch == 30:
         set_learning_rate(5e-5)
 
-    # -------------------------------------------------------------
-    # Stage 3: Epoch 41~60 (High-Frequency Polish)
-    # -------------------------------------------------------------
+    # ---------------------------------------------------------
+    # Stage 3: Epoch 40~59 — 高频细节打磨
+    # 激活拉普拉斯边缘损失 + 特征去相关，锐化背景细节
+    # ---------------------------------------------------------
     if engine.epoch == 40:
-        print("\n[i] Entering Stage 3: High-Frequency Polish")
+        print("\n[i] Entering Stage 3: High-Frequency Polish (Epochs 40-59)")
         set_learning_rate(1e-5)
-        engine.model.opt.lambda_l1 = 0.5          # 降低基础像素 L1 的比重，避免平滑
-        engine.model.opt.lambda_laplacian = 0.1   # 满血激活 Laplacian Edge Loss，锐化背景细节
-        
+        opt.lambda_pixel = 0.5          # 进一步降低像素损失权重，避免过度平滑
+        opt.lambda_maxrf = 0.8          # 加强 MaxRF 关注强反光区
+        opt.lambda_laplacian = 0.1      # 激活拉普拉斯边缘损失
+        opt.lambda_fea_decorr = 0.01    # 引入特征去相关损失
+
     if engine.epoch == 45:
         ratio = [0.5, 0.5]
         print('[i] adjust fusion ratio to {}'.format(ratio))
         train_dataset_fusion.fusion_ratios = ratio
-        set_learning_rate(5e-5) # 稍微回弹LR以适应数据分布变化
-        
+
     if engine.epoch == 50:
-        set_learning_rate(1e-5)
+        set_learning_rate(5e-6)
 
     # 训练单步
     engine.train(train_dataloader_fusion)
