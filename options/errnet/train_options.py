@@ -13,7 +13,7 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--debug', action='store_true', help='only do one epoch and displays at each iteration')
 
         # for training (Note: in train_errnet.py, we mannually tune the training protocol, but you can also use following setting by modifying the code in errnet_model.py)
-        self.parser.add_argument('--nEpochs', '-n', type=int, default=60, help='# of epochs to run')
+        self.parser.add_argument('--nEpochs', '-n', type=int, default=80, help='# of epochs to run')
         self.parser.add_argument('--lr', type=float, default=1e-4, help='initial learning rate for adam')
         self.parser.add_argument('--wd', type=float, default=0, help='weight decay for adam')
 

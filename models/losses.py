@@ -260,17 +260,17 @@ def init_loss(opt, tensor):
     loss_dic['t_pixel'] = pixel_loss
     loss_dic['r_pixel'] = pixel_loss
 
-    if opt.lambda_gan > 0:
-        if opt.gan_type == 'sgan' or opt.gan_type == 'gan':
-            disc_loss = DiscLoss()
-        elif opt.gan_type == 'rsgan':
-            disc_loss = DiscLossR()
-        elif opt.gan_type == 'rasgan':
-            disc_loss = DiscLossRa()
-        else:
-            raise ValueError("GAN [%s] not recognized." % opt.gan_type)
+    # 始终初始化 GAN 损失，避免课程学习中 lambda_gan 从 0 变为正值时找不到损失对象
+    if opt.gan_type == 'sgan' or opt.gan_type == 'gan':
+        disc_loss = DiscLoss()
+    elif opt.gan_type == 'rsgan':
+        disc_loss = DiscLossR()
+    elif opt.gan_type == 'rasgan':
+        disc_loss = DiscLossRa()
+    else:
+        raise ValueError("GAN [%s] not recognized." % opt.gan_type)
 
-        disc_loss.initialize(opt, tensor)
-        loss_dic['gan'] = disc_loss
+    disc_loss.initialize(opt, tensor)
+    loss_dic['gan'] = disc_loss
 
     return loss_dic
