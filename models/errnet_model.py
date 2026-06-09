@@ -385,6 +385,8 @@ class ERRNetModel(ERRNetBase):
         self.loss_exclusion = None
         self.loss_laplacian = None
         self.loss_fea_decorr = None
+        self.loss_vgg_ms = None
+        self.loss_gradient = None
 
         if self.opt.lambda_gan > 0:
             self.loss_G_GAN = self.loss_dic['gan'].get_g_loss(
@@ -401,6 +403,28 @@ class ERRNetModel(ERRNetBase):
             self.loss_icnn_vgg = self.loss_dic['t_vgg'].get_loss(
                 self.output_i, self.target_t)
             self.loss_G += self.loss_icnn_vgg * self.opt.lambda_vgg
+
+            # [v3 新增] 多尺度感知损失：在 1/2 和 1/4 分辨率上额外计算 VGG 损失
+            # 来源：IBCLN (Li et al., CVPR 2020) 的多尺度感知损失策略
+            if getattr(self.opt, 'lambda_vgg_ms', 0) > 0:
+                self.loss_vgg_ms = 0
+                for scale in [0.5, 0.25]:
+                    pred_scaled = F.interpolate(self.output_i, scale_factor=scale,
+                        mode='bilinear', align_corners=False)
+                    target_scaled = F.interpolate(self.target_t, scale_factor=scale,
+                        mode='bilinear', align_corners=False)
+                    self.loss_vgg_ms += self.loss_dic['t_vgg'].get_loss(pred_scaled, target_scaled)
+                self.loss_vgg_ms /= 2.0
+                self.loss_G += self.loss_vgg_ms * self.opt.lambda_vgg_ms
+
+            # [v3 新增] 独立梯度惩罚：从 pixel loss 中解耦，可独立调节权重
+            # 来源：ToT (NeurIPS 2021) 重建损失中的梯度场约束
+            if getattr(self.opt, 'lambda_gradient', 0) > 0:
+                pred_grad_x, pred_grad_y = losses.compute_gradient(self.output_i)
+                target_grad_x, target_grad_y = losses.compute_gradient(self.target_t)
+                self.loss_gradient = F.l1_loss(pred_grad_x, target_grad_x) + \
+                                     F.l1_loss(pred_grad_y, target_grad_y)
+                self.loss_G += self.loss_gradient * self.opt.lambda_gradient
 
             # [新增] MaxRF 掩膜加权损失
             if getattr(self.opt, 'lambda_maxrf', 0) > 0:
@@ -485,6 +509,10 @@ class ERRNetModel(ERRNetBase):
             ret_errors['Laplacian'] = self.loss_laplacian.item()
         if self.loss_fea_decorr is not None:
             ret_errors['FeaDecorr'] = self.loss_fea_decorr.item()
+        if self.loss_vgg_ms is not None:
+            ret_errors['VGG_MS'] = self.loss_vgg_ms.item()
+        if self.loss_gradient is not None:
+            ret_errors['Gradient'] = self.loss_gradient.item()
 
         return ret_errors
 

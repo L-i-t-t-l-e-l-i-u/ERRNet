@@ -46,5 +46,8 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--lambda_exclusion', type=float, default=0.0, help='weight for gradient exclusion loss')
         self.parser.add_argument('--lambda_laplacian', type=float, default=0.0, help='weight for laplacian edge loss')
         self.parser.add_argument('--lambda_fea_decorr', type=float, default=0.0, help='weight for feature decorrelation loss')
+        # [v3 新增] 多尺度感知损失 + 独立梯度惩罚
+        self.parser.add_argument('--lambda_vgg_ms', type=float, default=0.0, help='weight for multi-scale perceptual loss (1/2 + 1/4)')
+        self.parser.add_argument('--lambda_gradient', type=float, default=0.0, help='weight for independent gradient penalty')
         
         self.isTrain = True
