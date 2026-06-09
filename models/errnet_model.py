@@ -94,10 +94,15 @@ class MaxRFMaskWeightedLoss(nn.Module):
         self.weight_boost = weight_boost
 
     def forward(self, pred_T, target_T, I):
-        grad_I = torch.abs(I[:, :, :, 1:] - I[:, :, :, :-1]) + torch.abs(I[:, :, 1:, :] - I[:, :, :-1, :])
-        grad_T_gt = torch.abs(target_T[:, :, :, 1:] - target_T[:, :, :, :-1]) + torch.abs(target_T[:, :, 1:, :] - target_T[:, :, :-1, :])
-        grad_I = F.pad(grad_I, (0, 1, 0, 1))
-        grad_T_gt = F.pad(grad_T_gt, (0, 1, 0, 1))
+        # x 方向梯度 (N,C,H,W-1)，右边补一列 0 → (N,C,H,W)
+        grad_I_x = F.pad(torch.abs(I[:, :, :, 1:] - I[:, :, :, :-1]), (0, 1, 0, 0))
+        grad_T_x = F.pad(torch.abs(target_T[:, :, :, 1:] - target_T[:, :, :, :-1]), (0, 1, 0, 0))
+        # y 方向梯度 (N,C,H-1,W)，下方补一行 0 → (N,C,H,W)
+        grad_I_y = F.pad(torch.abs(I[:, :, 1:, :] - I[:, :, :-1, :]), (0, 0, 0, 1))
+        grad_T_y = F.pad(torch.abs(target_T[:, :, 1:, :] - target_T[:, :, :-1, :]), (0, 0, 0, 1))
+        # 现在形状一致，可以相加
+        grad_I = grad_I_x + grad_I_y
+        grad_T_gt = grad_T_x + grad_T_y
         mask = (grad_I > grad_T_gt).float()
         l1_diff = torch.abs(pred_T - target_T)
         weighted_loss = l1_diff * (1.0 + (self.weight_boost - 1.0) * mask)
