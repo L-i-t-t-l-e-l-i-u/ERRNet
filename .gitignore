@@ -15,5 +15,6 @@ processed_data
 errnet_env/
 train_log.txt
 train_v2.log
+train_v3.log
 run_all_tests.sh
 test_results*
