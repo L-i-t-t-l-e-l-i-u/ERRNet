@@ -22,3 +22,8 @@ opt_planning.md
 PROJECT_HANDOVER.md
 opt_planning.md
 eval_sweep.sh
+eval_sweep_*
+*.log
+*.sh
+train_v4.log
+nohup.out

@@ -39,7 +39,7 @@ eval_dataloader_real = datasets.DataLoader(
     eval_dataset_real, batch_size=1, shuffle=False, num_workers=opt.nThreads, pin_memory=True)
 
 engine = Engine(opt)
-opt.save_epoch_freq = 1  # fine-tune 每轮保存 checkpoint，便于找回最优 epoch
+opt.save_epoch_freq = 1
 
 def set_learning_rate(lr):
     for optimizer in engine.model.optimizers:
