@@ -40,7 +40,7 @@ def set_learning_rate(lr):
 
 
 set_learning_rate(1e-4)
-while engine.epoch < 80:
+while engine.epoch < 100:
     if engine.epoch == 65:
         set_learning_rate(5e-5)
     if engine.epoch == 70:
