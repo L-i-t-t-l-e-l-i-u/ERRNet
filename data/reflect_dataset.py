@@ -2,7 +2,7 @@ import os.path
 from os.path import join
 from data.image_folder import make_dataset
 from data.transforms import Sobel, to_norm_tensor, to_tensor, ReflectionSythesis_1, ReflectionSythesis_2
-from PIL import Image, ImageFilter  # [课设优化] 新增了 ImageFilter 用于散焦模糊
+from PIL import Image, ImageFilter 
 import random
 import torch
 import math
@@ -135,31 +135,24 @@ class CEILDataset(BaseDataset):
         if self.enable_transforms:
             t_img, r_img = paired_data_transforms(t_img, r_img)
             
-        # =====================================================================
-        # [课设核心优化：注入 CVPR2020 物理先验 (Ghosting & Defocus)]
-        # 仅在训练阶段应用 (enable_transforms=True)
-        # =====================================================================
+
         if self.enable_transforms:
             r_tensor = F.to_tensor(r_img)
             
-            # 1. Ghosting Augmentation (模拟双层玻璃重影)
+
             if random.random() > 0.5:
-                # 随机生成微小像素偏移
                 shift_x = random.choice([-5, -4, -3, 3, 4, 5])
                 shift_y = random.choice([-5, -4, -3, 3, 4, 5])
                 r_shift = torch.roll(r_tensor, shifts=(shift_y, shift_x), dims=(1, 2))
-                # R_ghost = R + 0.5 * R_shift，限制像素值不超过1.0
                 r_tensor = torch.clamp(r_tensor + 0.5 * r_shift, 0.0, 1.0)
             
-            # 转换回 PIL，以便后续可能需要的 PIL 操作
             r_img = F.to_pil_image(r_tensor)
             
-            # 2. Defocus Blur Augmentation (背景聚焦，反射层失焦)
             if random.random() > 0.5:
-                # 采用 PIL 的 GaussianBlur 进行随机模糊
+  
                 radius = random.uniform(1.0, 3.0)
                 r_img = r_img.filter(ImageFilter.GaussianBlur(radius))
-        # =====================================================================
+
             
         syn_model = self.syn_model
         t_img, r_img, m_img = syn_model(t_img, r_img)

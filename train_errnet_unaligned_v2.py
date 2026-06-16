@@ -11,7 +11,7 @@ opt = TrainOptions().parse()
 
 cudnn.benchmark = True
 
-# processed datasets prepared by datasets/prepare_train_data.py and datasets/prepare_test_data.py
+
 datadir = './datasets/processed_data'
 raw_datadir = './datasets/raw_data'
 
@@ -30,7 +30,7 @@ train_dataloader_fusion = datasets.DataLoader(
     train_dataset_fusion, batch_size=opt.batchSize, shuffle=not opt.serial_batches, 
     num_workers=opt.nThreads, pin_memory=True)
 
-# 评估数据集
+
 eval_dataset_ceilnet = datasets.CEILTestDataset(join(datadir, 'testdata_CEILNET_table2'))
 eval_dataset_real = datasets.CEILTestDataset(join(datadir, 'real20'), size=20, max_long_edge=512)
 eval_dataloader_ceilnet = datasets.DataLoader(
@@ -45,17 +45,7 @@ def set_learning_rate(lr):
     for optimizer in engine.model.optimizers:
         util.set_opt_param(optimizer, 'lr', lr)
 
-# =========================================================
-# 未对齐 Fine-tune（改进版）
-#
-# 关键改进：
-#   1. 极低初始 LR（5e-6），保护已收敛的权重不被打散
-#   2. 保留 v3 的损失函数权重——对齐数据（25%合成+25%真实）
-#      仍走多损失约束，未对齐数据（50%）走 CX 损失
-#   3. 每 5 epoch 评估 CEILNet + real20，监控是否过拟合
-# =========================================================
 
-# 沿用 v3 Stage 3 的损失函数配置（对齐数据上生效）
 opt.lambda_pixel = 1.0
 opt.lambda_vgg = 0.1
 opt.lambda_gan = 0.01
@@ -73,7 +63,7 @@ print("[i] LR=5e-6, data ratio: [0.25syn, 0.5unaligned, 0.25real]")
 print("[i] Aligned samples: all v3 loss functions active")
 print("[i] Unaligned samples: CX loss (unaligned_loss=vgg)")
 
-while engine.epoch < 100:  # 80→100，做 20 epoch fine-tune
+while engine.epoch < 100:  # 80→100
     if engine.epoch == 90:
         set_learning_rate(2e-6)
 

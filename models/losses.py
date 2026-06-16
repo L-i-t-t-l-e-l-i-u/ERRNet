@@ -11,9 +11,7 @@ from models.vgg import Vgg19
 from torch.autograd import Function
 from models.CX import CX_loss
 
-###############################################################################
-# Functions
-###############################################################################
+
 def compute_gradient(img):
     gradx=img[...,1:,:]-img[...,:-1,:]
     grady=img[...,1:]-img[...,:-1]
@@ -260,7 +258,7 @@ def init_loss(opt, tensor):
     loss_dic['t_pixel'] = pixel_loss
     loss_dic['r_pixel'] = pixel_loss
 
-    # 始终初始化 GAN 损失，避免课程学习中 lambda_gan 从 0 变为正值时找不到损失对象
+
     if opt.gan_type == 'sgan' or opt.gan_type == 'gan':
         disc_loss = DiscLoss()
     elif opt.gan_type == 'rsgan':

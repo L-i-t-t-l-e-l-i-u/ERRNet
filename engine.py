@@ -31,8 +31,7 @@ class Engine(object):
         self.model = models.__dict__[self.opt.model]()
         self.model.initialize(opt)
         
-        # [已修复] 课设损失已直接集成到 errnet_model.py 的 backward_G 中，
-        # 不再使用 monkey-patch，避免双重参数更新问题。
+
 
         if not opt.no_log:
             self.writer = util.get_summary_writer(os.path.join(self.basedir, 'logs'))
@@ -51,7 +50,6 @@ class Engine(object):
             iterations = self.iterations
             
             model.set_input(data, mode='train')
-            # 此时调用的已经是挂载了你课设新损失函数的优化器
             model.optimize_parameters(**kwargs)
             
             errors = model.get_current_errors()
